@@ -13,6 +13,7 @@ import sys
 import os
 import configparser
 import urllib.parse
+import secrets
 
 # TODO:
 # 文件识别
@@ -446,6 +447,7 @@ class OGMSTaskAccess(Service):
     def __init__(self, modelName: str):
         super().__init__("0", 0)
         self.outputs = []
+        self.modelName = modelName
         # 创建一个配置解析器对象
         config = configparser.ConfigParser()
         # 读取配置文件
@@ -472,7 +474,7 @@ class OGMSTaskAccess(Service):
     def checkModel(self, modelName: str):
         if not modelName:
             print("请输入模型名称！")
-            sys.exit(0)
+            sys.exit(1)
         encode_url = urllib.parse.quote(modelName)
         # get model pid
         res = HttpHelper.Request_get_sync(
@@ -482,7 +484,7 @@ class OGMSTaskAccess(Service):
         )
         if res is None:
             print(f"《{modelName}》模型库维护中，请联系管理员！")
-            sys.exit(0)
+            sys.exit(1)
         else:
             if (
                 res["code"] == 0
@@ -496,12 +498,12 @@ class OGMSTaskAccess(Service):
                 self.mdlData = res["data"]
             else:
                 print(f"《{modelName}》资源不存在！")
-                sys.exit(0)
+                sys.exit(1)
 
     def checkModelService(self, pid: str):
         if not pid:
             print("模型服务启动失败，请联系管理员！")
-            sys.exit(0)
+            sys.exit(1)
         # check if the pid is valid
         resJson = HttpHelper.Request_get_sync(
             self.managerServer, self.managerPort, "/GeoModeling/task/verify/" + pid
@@ -512,10 +514,10 @@ class OGMSTaskAccess(Service):
                 return 1
             else:
                 print("模型服务创建失败，请联系管理员！")
-                sys.exit(0)
+                sys.exit(1)
         else:
             print("模型服务创建失败，请联系管理员！")
-            sys.exit(0)
+            sys.exit(1)
 
     def subscribeTask(self, task: OGMSTask) -> ResultUtils:
         res = HttpHelper.Request_post_json_sync(
@@ -535,11 +537,13 @@ class OGMSTaskAccess(Service):
             sys.exit(1)
 
     def downloadAllData(self) -> bool:
+
         downloadFilesNum = 0
         downlaodedFilesNum = 0
         if not self.outputs:
             print("没有可下载的数据")
             return False
+
         for output in self.outputs:
             statename = output["statename"]
             event = output["event"]
@@ -549,10 +553,17 @@ class OGMSTaskAccess(Service):
             base_filename = f"{statename}-{event}"
             filename = f"{base_filename}.{suffix}"
             counter = 1
+            s_id = secrets.token_hex(8)
+            file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
+
+            dir_path = os.path.dirname(file_path)
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
 
             # 检查文件是否存在
-            while os.path.exists(filename):
+            while os.path.exists(file_path):
                 filename = f"{base_filename}_{counter}.{suffix}"
+                file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
                 counter += 1
             downloadFilesNum = downloadFilesNum + 1
             # 下载文件并保存
@@ -610,9 +621,17 @@ class OGMSDownload:
             filename = f"{base_filename}.{suffix}"
             counter = 1
 
+            s_id = secrets.token_hex(8)
+            file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
+
+            dir_path = os.path.dirname(file_path)
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
             # 检查文件是否存在
-            while os.path.exists(filename):
+            while os.path.exists(file_path):
                 filename = f"{base_filename}_{counter}.{suffix}"
+                file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
                 counter += 1
             downloadFilesNum = downloadFilesNum + 1
             # 下载文件并保存
@@ -626,6 +645,7 @@ class OGMSDownload:
                 print(f"Failed to download {url}")
         if downlaodedFilesNum == 0:
             print("Failed to download files")
+            sys.exit(1)
         if downloadFilesNum == downlaodedFilesNum:
             print("All files downloaded successfully")
         else:
