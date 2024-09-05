@@ -4,7 +4,7 @@
 # Description : Usage ogms task
 
 from .base import Service
-from .utils import HttpHelper
+from .openUtils import HttpHelper
 from .responseHandler import ResultUtils
 
 import json

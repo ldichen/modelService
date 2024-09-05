@@ -1,16 +1,18 @@
-#Data : 2020-5-30
-#Author : Fengyuan Zhang (Franklin)
-#Email : franklinzhang@foxmail.com
-#Description : Provide base service for all related service to inherit
-
+"""
+Author: DiChen
+Date: 2024-08-12 14:47:40
+LastEditors: DiChen
+LastEditTime: 2024-09-06 00:46:33
+"""
 
 from .utils import HttpHelper
+
 
 class Service:
     def __init__(self, ip: str, port: int):
         self.ip = ip
         self.port = port
-    
+
     def getBaseURL(self) -> str:
         return "http://" + self.ip + ":" + str(self.port) + "/"
 

@@ -1,8 +1,3 @@
-# Data : 2020-5-30
-# Author : Fengyuan Zhang (Franklin)
-# Email : franklinzhang@foxmail.com
-# Description : Provide tools
-
 import http.client as httplib
 import json
 import requests
