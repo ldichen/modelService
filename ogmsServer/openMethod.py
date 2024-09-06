@@ -92,17 +92,17 @@ class OGMSTaskAccess(Service):
         if not methodName:
             print("方法名不能为空")
             sys.exit(1)
-        res = HttpClient.get_sync(
-            url=f"http://{self.ip}:{self.port}/renren-fast/container/method/infoByName/{methodName}",
-            headers=self.headers,
-        )
-        # res = HttpHelper.Request_get_sync(
-        #     self.ip,
-        #     self.port,
-        #     "/renren-fast/container/method/infoByName/" + methodName,
+        # res = HttpClient.get_sync(
+        #     url=f"http://{self.ip}:{self.port}/renren-fast/container/method/infoByName/{methodName}",
         #     headers=self.headers,
         # )
-        if res.status_code != 200:
+        res = HttpHelper.Request_get_sync(
+            self.ip,
+            self.port,
+            "/renren-fast/container/method/infoByName/" + methodName,
+            headers=self.headers,
+        )
+        if res is None:
             print("方法不存在，请联系管理员！")
             sys.exit(1)
         else:
