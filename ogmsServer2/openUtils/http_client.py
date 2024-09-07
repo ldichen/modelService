@@ -34,7 +34,7 @@ class HttpClient:
                 return {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
-                    "data": response.json(),
+                    "json": response.json(),
                 }
         except httpx.TimeoutException:
             # 处理超时错误
@@ -57,6 +57,13 @@ class HttpClient:
                 "headers": None,
                 "error": f"Unexpected error: {e}",
             }
+
+    @staticmethod
+    def hander_response(response):
+        if response["status_code"] == 200:
+            return response
+        else:
+            raise Exception(response["error"])
 
     @staticmethod
     def get_sync(
@@ -137,7 +144,7 @@ class HttpClient:
                 return {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
-                    "data": response.json(),
+                    "json": response.json(),
                 }
         except httpx.TimeoutException:
             # 处理超时错误

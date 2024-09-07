@@ -2,14 +2,14 @@
 Author: DiChen
 Date: 2024-08-27 10:31:06
 LastEditors: DiChen
-LastEditTime: 2024-09-06 20:16:22
+LastEditTime: 2024-09-07 09:09:23
 """
 
 """
 Author: DiChen
 Date: 2024-08-27 10:31:06
 LastEditors: DiChen
-LastEditTime: 2024-08-29 16:04:49
+LastEditTime: 2024-09-06 20:16:22
 """
 
 from ogmsServer import openMethod
