@@ -5,38 +5,36 @@ LastEditors: DiChen
 LastEditTime: 2024-09-07 00:16:30
 """
 
-################public lib################
-import urllib.parse
-import time
-
-################private lib################
-from .base import Service
-from .openUtils.stateManager import StateManager
-from .openUtils.http_client import HttpClient
-from .openUtils.parameterValidator import ParameterValidator as PV
-from .openUtils.mdlUtils import MdlUtils
-from . import constants as C
+from g_imports import *
 
 
 class OGMSTask(Service):
     def __init__(self, params: dict):
         super().__init__()
-        PV.notEmpty(params, "Params")
+        self.status: None | int = None
+        PV.v_empty(params, "Params")
         # 对输入的参数进行校验、文件上传等操作
 
     def wait4Status(self, timeout: int = 7200):
-        start_time = time.time()
-        stateManager = None
-        if self._refresh() == 0:
+        try:
+            start_time = time.time()
             stateManager = StateManager()
-        pass
+            stateManager.checkInputStatus(PV.v_status(self._refresh()))
+            while stateManager.getState != 0b100:
+                stateManager.checkInputStatus(PV.v_status(self._refresh()))
+                if time.time() - start_time > timeout:
+                    raise calTimeoutError()
+                time.sleep(3)
+        except NotValueError or modelStatusError as e:
+            print(e)
+            exit(1)
 
     ########################private################################
     def _uploadData(self, dataPath: str):
         pass
 
     def _refresh(self):
-        PV.notEmpty(self.modelSign, "Model sign")
+        PV.v_empty(self.modelSign, "Model sign")
         res = HttpClient.hander_response(
             HttpClient.post_sync(
                 url=self.managerUrl + C.REFRESH_RECORD, data=self.modelSign
@@ -69,7 +67,7 @@ class OGMSTask(Service):
 class OGMSAccess(Service):
     def __init__(self, modelName: str):
         super().__init__()
-        PV.notEmpty(modelName, "Model name")
+        PV.v_empty(modelName, "Model name")
         self.modelName = modelName
         self.subsribeList = {}
         self.outputs = []
@@ -80,7 +78,7 @@ class OGMSAccess(Service):
             exit(1)
 
     def createTask(self, params: dict):
-        PV.notEmpty(params, "Params")
+        PV.v_empty(params, "Params")
         task = OGMSTask(self.subsribeList)
         if task.validate(params):
             self._subscribeTask()
@@ -92,7 +90,7 @@ class OGMSAccess(Service):
 
     ########################private################################
     def _checkModel(self, modelName: str):
-        PV.notEmpty(modelName, "Model name")
+        PV.v_empty(modelName, "Model name")
         res = (
             HttpClient.hander_response(
                 HttpClient.get_sync(
@@ -109,7 +107,7 @@ class OGMSAccess(Service):
         return 0
 
     def _checkModelService(self, pid: str):
-        PV.notEmpty(pid, "Model pid")
+        PV.v_empty(pid, "Model pid")
         if (
             HttpClient.hander_response(
                 HttpClient.get_sync(self.managerUrl + C.CHECK_MODEL_SERVICE + pid)

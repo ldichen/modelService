@@ -5,6 +5,8 @@ LastEditors: DiChen
 LastEditTime: 2024-09-07 01:07:19
 """
 
+from exceptions import NotValueError, modelStatusError
+
 STATUS = ["Model sign"]
 
 
@@ -35,15 +37,14 @@ class ParameterValidator:
             raise ValueError("Parameter must be a dictionary.")
 
     @staticmethod
-    def notEmpty(param, name: str):
-        try:
-            if param is None or param == {} or param == [] or not param.strip():
-                if name in STATUS:
-                    raise ValueError(f"{name} occurs error, please try again!")
-                raise ValueError(f"{name} cannot be empty,plesae check!")
-        except ValueError as e:
-            print(e)
-            exit(1)
+    def v_empty(param, name: str):
+        if param is None or param == {} or param == [] or not param.strip():
+            if name in STATUS:
+                raise NotValueError(f"{name} occurs error, please try again!")
+            raise NotValueError(f"{name} cannot be empty,plesae check!")
 
     @staticmethod
-    def modelStatus
+    def v_status(param):
+        if param == -1 or param == -2:
+            raise modelStatusError(f"model service calculate error!")
+        return param

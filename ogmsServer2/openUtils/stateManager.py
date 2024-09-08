@@ -2,51 +2,61 @@
 Author: DiChen
 Date: 2024-09-06 17:21:20
 LastEditors: DiChen
-LastEditTime: 2024-09-06 20:05:03
+LastEditTime: 2024-09-08 16:23:59
 """
 
 # 定义状态常量
-STATE_INIT = 0b1  # 1: 初始化状态
-STATE_RUNNING = 0b10  # 2: 运行中状态
-STATE_COMPLETED = 0b100  # 4: 已完成状态
-STATE_ERROR = 0b1000  # 8: 错误状态
+STATE_INIT = 0b1  # 1: init
+STATE_RUNNING = 0b10  # 2: running
+STATE_COMPLETED = 0b100  # 4: completed
+STATE_ERROR = 0b1000  # 8: error
 
 
 class StateManager:
     def __init__(self):
-        # 初始化状态，默认处于 INIT 状态
-        self.current_state = STATE_INIT
+        # init state
+        self.state = STATE_INIT
+        print(f"StateManager initialized in state: {bin(self.state)}")
 
-    def set_state(self, state):
-        """设置状态"""
-        self.current_state |= state
+    def addState(self, state):
+        """add state"""
+        self.state |= state
 
-    def clear_state(self, state):
-        """清除状态"""
-        self.current_state &= ~state
+    def removeState(self, state):
+        """remove state"""
+        self.state &= ~state
 
-    def is_state_set(self, state):
-        """检查状态是否已设置"""
-        return self.current_state & state != 0
+    def hasStatus(self, state):
+        """check state"""
+        return self.state & state != 0
 
-    def transition_to(self, state):
-        """状态转换逻辑，确保状态转换符合预期"""
-        if state == STATE_RUNNING and not self.is_state_set(STATE_INIT):
+    def trans2Status(self, state):
+        """transition to state"""
+        if state == STATE_RUNNING and not self.hasStatus(STATE_INIT):
             print("Cannot run without initialization")
             return
 
-        if state == STATE_COMPLETED and not self.is_state_set(STATE_RUNNING):
+        if state == STATE_COMPLETED and not self.hasStatus(STATE_RUNNING):
             print("Cannot complete without running")
             return
 
         if state == STATE_ERROR:
             print("Error occurred, transitioning to ERROR state")
-            self.current_state = state
+            self.state = state
             return
 
-        self.current_state = state
-        print(f"Transitioned to state: {bin(self.current_state)}")
+        self.state = state
+        print(f"Transitioned to state: {bin(self.state)}")
 
-    def get_current_state(self):
-        """获取当前状态"""
-        return bin(self.current_state)
+    def getState(self):
+        """get state"""
+        return bin(self.state)
+
+    def checkInputStatus(self, status):
+        """check input status"""
+        if status == 1 and self.hasStatus(STATE_INIT):
+            self.trans2Status(STATE_RUNNING)
+            print("model service calculating!")
+        elif status == 2:
+            self.trans2Status(STATE_COMPLETED)
+            print("model calculation was completed!")
