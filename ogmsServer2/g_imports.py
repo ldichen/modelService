@@ -2,7 +2,7 @@
 Author: DiChen
 Date: 2024-09-08 16:00:23
 LastEditors: DiChen
-LastEditTime: 2024-09-08 16:01:12
+LastEditTime: 2024-09-08 18:50:47
 """
 
 ################public lib################
@@ -19,7 +19,7 @@ from .openUtils.mdlUtils import MdlUtils
 from . import constants as C
 
 __all__ = [
-    "urllib.parse",
+    "urllib",
     "time",
     "Service",
     "StateManager",

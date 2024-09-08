@@ -2,6 +2,13 @@
 Author: DiChen
 Date: 2024-09-06 15:22:20
 LastEditors: DiChen
+LastEditTime: 2024-09-08 20:15:23
+"""
+
+"""
+Author: DiChen
+Date: 2024-09-06 15:22:20
+LastEditors: DiChen
 LastEditTime: 2024-09-06 15:39:59
 """
 
@@ -11,7 +18,8 @@ import os
 
 
 class Service:
-    def __init__(self):
+    def __init__(self, token: str | None = None):
+        self.token: str | None = token
         # 创建一个配置解析器对象
         config = configparser.ConfigParser()
         # 读取配置文件

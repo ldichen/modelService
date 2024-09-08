@@ -65,8 +65,8 @@ class OGMSTask(Service):
 
 
 class OGMSAccess(Service):
-    def __init__(self, modelName: str):
-        super().__init__()
+    def __init__(self, modelName: str, token: str | None = None):
+        super().__init__(token=token)
         PV.v_empty(modelName, "Model name")
         self.modelName = modelName
         self.subsribeList = {}
