@@ -2,10 +2,10 @@
 Author: DiChen
 Date: 2024-09-07 00:58:14
 LastEditors: DiChen
-LastEditTime: 2024-09-07 01:07:19
+LastEditTime: 2024-09-09 19:06:45
 """
 
-from exceptions import NotValueError, modelStatusError
+from .exceptions import NotValueError, modelStatusError
 
 STATUS = ["Model sign"]
 

@@ -21,7 +21,7 @@ class HttpHelper:
             return "Error"
 
     @staticmethod
-    def Request_get_sync(ip: str, port: int, path: str, headers: object = None) -> json:
+    def Request_get_sync(ip: str, port: int, path: str, headers: object = {}) -> json:
         try:
             conn = httplib.HTTPConnection(ip, port)
             conn.request("GET", path, headers=headers)

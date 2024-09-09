@@ -5,14 +5,18 @@ LastEditors: DiChen
 LastEditTime: 2024-09-07 00:16:30
 """
 
-from g_imports import *
+from . import *
 
 
 class OGMSTask(Service):
-    def __init__(self, params: dict):
+    def __init__(self, origin_lists: dict):
         super().__init__()
         self.status: None | int = None
-        PV.v_empty(params, "Params")
+        self.username = None
+        PV.v_empty(origin_lists, "origin lists")
+        self.origin_lists = origin_lists
+        self.subscirbe_lists = {}
+        self.tid = None
         # 对输入的参数进行校验、文件上传等操作
 
     def wait4Status(self, timeout: int = 7200):
@@ -29,9 +33,148 @@ class OGMSTask(Service):
             print(e)
             exit(1)
 
+    def configInputData(self, params: dict):
+        try:
+            PV.v_empty(params, "params list")
+            lists = {"inputs": self._uploadData(params), "username": self.username}
+            return self._mergeData(lists)
+        except NotValueError or UploadFileError or MDLVaildParamsError as e:
+            print(e)
+            exit(1)
+
     ########################private################################
-    def _uploadData(self, dataPath: str):
-        pass
+    def _uploadData(self, pathList: str):
+        inputs = {}
+        for category, files in pathList.items():
+            inputs[category] = {}
+            for key, file_path in files.items():
+                file_name = file_path.split("/")[-1]
+                inputs[category][key] = {
+                    "name": file_name,
+                    "url": self._getUploadData(file_path),
+                }
+        return inputs
+
+    def _getUploadData(self, path: str):
+        res = (
+            HttpClient.hander_response(
+                HttpClient.post_sync(
+                    self.dataUrl + C.UPLOAD_DATA, files={"datafile": open(path, "rb")}
+                )
+            )
+            .get("json", {})
+            .get("data", {})
+        )
+        if res.get("id"):
+            return "http://geomodeling.njnu.edu.cn/dataTransferServer/data/" + res.get(
+                "id"
+            )
+        raise UploadFileError()
+
+    def _mergeData(self, params: dict):
+        def extract_file_suffix(filename: str) -> str:
+            """提取文件名的后缀名."""
+            return filename.split(".")[-1] if "." in filename else ""
+
+        def update_input_item(input_item: dict, event_data: dict):
+            """根据 input_data 中的 event_data 更新 origin_data 中的 input_item."""
+            if "children" in event_data:
+                input_item["suffix"] = "xml"  # 如果有 children，后缀名固定为 xml
+                for child in input_item.get("children", []):
+                    event_name = child["eventName"]
+                    for b_child in event_data["children"]:
+                        if event_name in b_child:
+                            child["value"] = b_child[event_name]
+            else:
+                if "name" in event_data:
+                    input_item["suffix"] = extract_file_suffix(event_data["name"])
+
+            if "url" in event_data:
+                input_item["url"] = event_data["url"]
+
+        def fill_data_with_input(input_data: dict, origin_data: dict) -> dict:
+            """根据 input_data 填补 origin_data."""
+            for input_item in origin_data.get("inputs", []):
+                state_name = input_item.get("statename")
+                event_name = input_item.get("event")
+
+                PV.v_empty(state_name, "State name")
+                PV.v_empty(event_name, "Event name")
+
+                state_data = input_data["inputs"].get(state_name)
+                if state_data and event_name in state_data:
+                    update_input_item(input_item, state_data[event_name])
+            origin_data["username"] = input_data.get("username")
+            return origin_data
+
+        filled_origin_data = fill_data_with_input(params, self.origin_lists)
+        return self._validData(filled_origin_data)
+
+    def _validData(self, merge_data: dict):
+        def validate_event(event):
+            errors = []
+            event_name = f"{event.get('statename')}-{event.get('event')}"
+
+            if event.get("optional") == "False":
+                # 必填项
+                if not event.get("url"):
+                    errors.append(f"{event_name}的中转数据信息有误！")
+                if not event.get("suffix"):
+                    errors.append(f"{event_name}的文件有误！")
+                if "children" in event:
+                    for child in event["children"]:
+                        if not child.get("value"):
+                            errors.append(f"{event_name}子参数有误")
+            elif event.get("optional") == "True":
+                # 选填项
+                if event.get("url") or event.get("suffix") or "children" in event:
+                    if not (event.get("url") and event.get("suffix")):
+                        errors.append(f"{event_name}子参数有误！")
+                    if "children" in event:
+                        for child in event["children"]:
+                            if not child.get("value"):
+                                errors.append(f"{event_name}子参数不能为空！")
+
+            return errors
+
+        def process_inputs(inputs):
+            errors = []
+            valid_inputs = []
+            for event in inputs:
+                event_errors = validate_event(event)
+                if event_errors:
+                    errors.extend(event_errors)
+                else:
+                    if event.get("optional") == "True":
+                        if not (
+                            event.get("url")
+                            or event.get("suffix")
+                            or "children" in event
+                        ):
+                            continue
+                    valid_inputs.append(event)
+            return valid_inputs, errors
+
+        def check_username(username):
+            errors = []
+            if not username:
+                errors.append("no token")
+            return errors
+
+        errors = check_username(merge_data.get("username"))
+
+        # 处理 inputs
+        valid_inputs, input_errors = process_inputs(merge_data.get("inputs", []))
+        errors.extend(input_errors)
+
+        # 更新数据
+        merge_data["inputs"] = valid_inputs
+
+        # 打印错误信息
+        if errors:
+            raise MDLVaildParamsError("\n".join(errors))
+        else:
+            self.subscirbe_lists = merge_data
 
     def _refresh(self):
         PV.v_empty(self.modelSign, "Model sign")
@@ -65,11 +208,10 @@ class OGMSTask(Service):
 
 
 class OGMSAccess(Service):
-    def __init__(self, modelName: str, token: str | None = None):
+    def __init__(self, modelName: str, token: str = None):
         super().__init__(token=token)
         PV.v_empty(modelName, "Model name")
         self.modelName = modelName
-        self.subsribeList = {}
         self.outputs = []
         if self._checkModelService(pid=self._checkModel(modelName=modelName)):
             print("Model service is ready!")
@@ -79,10 +221,9 @@ class OGMSAccess(Service):
 
     def createTask(self, params: dict):
         PV.v_empty(params, "Params")
-        task = OGMSTask(self.subsribeList)
-        if task.validate(params):
-            self._subscribeTask()
-        result = task.wait4Status()
+        task = OGMSTask(self.originLists)
+        if task.configInputData(params, self.token) and self._subscribeTask(task):
+            result = task.wait4Status()
         pass
 
     def downloadAllData(self):
@@ -101,8 +242,8 @@ class OGMSAccess(Service):
             .get("data", {})
         )
         if res.get("md5"):
-            self._checkModelService(pid=res.get("pid"))
-            self.subsribeList = MdlUtils.resolveMDL(res.get("mdl"))
+            self._checkModelService(pid=res.get("md5"))
+            self.originLists = MDL().resolvingMDL(res.get("mdl"))
             return res.get("pid")
         return 0
 
@@ -119,6 +260,19 @@ class OGMSAccess(Service):
             return 1
         return 0
 
-    def _subscribeTask(self):
-        res = HttpClient.post_sync(self.managerUrl + C.INVOKE_MODEL, self.subsribeList)
-        pass
+    def _subscribeTask(self, task):
+        res = (
+            HttpClient.hander_response(
+                HttpClient.post_sync(
+                    self.managerUrl + C.INVOKE_MODEL, task.subscirbe_lists
+                )
+            )
+            .get("json", {})
+            .get("data", {})
+        )
+        if res.get("code") == 1:
+            task.ip = res.get("data").get("ip")
+            task.port = res.get("data").get("port")
+            task.tid = res.get("data").get("tid")
+            return 1
+        raise NotValueError("Model invoke error!")

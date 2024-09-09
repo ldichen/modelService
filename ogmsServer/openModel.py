@@ -4,7 +4,8 @@
 # Description : Usage ogms task
 
 from .base import Service
-from .openUtils import HttpHelper
+
+from .utils import HttpHelper
 from .responseHandler import ResultUtils
 
 import json
@@ -457,7 +458,7 @@ class OGMSTaskAccess(Service):
             sys.exit(1)
         config.read(config_path)
         self.portalServer = config.get("DEFAULT", "portalServer").strip()
-        self.portalPort = config.get("DEFAULT", "portalPort").strip()
+        self.portalPort = int(config.get("DEFAULT", "portalPort").strip())
         self.managerServer = config.get("DEFAULT", "managerServer").strip()
         self.managerPort = config.get("DEFAULT", "managerPort").strip()
         if not (

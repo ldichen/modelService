@@ -2,6 +2,13 @@
 Author: DiChen
 Date: 2024-09-08 11:46:48
 LastEditors: DiChen
+LastEditTime: 2024-09-09 21:59:50
+"""
+
+"""
+Author: DiChen
+Date: 2024-09-08 11:46:48
+LastEditors: DiChen
 LastEditTime: 2024-09-08 11:46:51
 """
 
@@ -56,4 +63,18 @@ class calTimeoutError(MyBaseError):
     """model calculate timeout error"""
 
     def __init__(self, message="model calculate timeout error", error_code=1005):
+        super().__init__(message, error_code)
+
+
+class UploadFileError(MyBaseError):
+    """upload file error"""
+
+    def __init__(self, message="upload file error", error_code=1006):
+        super().__init__(message, error_code)
+
+
+class MDLVaildParamsError(MyBaseError):
+    """MDL vaild params error"""
+
+    def __init__(self, message="MDL vaild params error", error_code=1007):
         super().__init__(message, error_code)
