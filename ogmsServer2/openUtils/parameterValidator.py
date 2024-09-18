@@ -38,7 +38,12 @@ class ParameterValidator:
 
     @staticmethod
     def v_empty(param, name: str):
-        if param is None or param == {} or param == [] or not param.strip():
+        if (
+            param is None
+            or param == {}
+            or param == []
+            or (param is str and not param.strip())
+        ):
             if name in STATUS:
                 raise NotValueError(f"{name} occurs error, please try again!")
             raise NotValueError(f"{name} cannot be empty,plesae check!")

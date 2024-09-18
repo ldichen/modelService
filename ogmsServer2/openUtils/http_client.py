@@ -18,6 +18,7 @@ class HttpClient:
         files: Optional[Files] = None,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Headers] = None,
+        downloadFile: bool = False,
     ) -> Dict[str, Any]:
         try:
             with httpx.Client(timeout=httpx.Timeout(timeout)) as client:
@@ -31,6 +32,12 @@ class HttpClient:
                     headers=headers,
                 )
                 response.raise_for_status()  # 检查 HTTP 错误
+                if downloadFile:
+                    return {
+                        "status_code": response.status_code,
+                        "headers": dict(response.headers),
+                        "content": response.content,
+                    }
                 return {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
@@ -75,6 +82,23 @@ class HttpClient:
         return HttpClient._make_sync_request(
             "GET", url, timeout=timeout, params=params, headers=headers
         )
+
+    @staticmethod
+    def get_file_sync(
+        url: str,
+        timeout: int = 10,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Headers] = None,
+    ):
+        response = HttpClient._make_sync_request(
+            "GET",
+            url,
+            timeout=timeout,
+            params=params,
+            headers=headers,
+            downloadFile=True,
+        )
+        return response
 
     @staticmethod
     def post_sync(

@@ -6,13 +6,15 @@ LastEditTime: 2024-09-07 00:16:30
 """
 
 from . import *
+import secrets
+import os
 
 
 class OGMSTask(Service):
-    def __init__(self, origin_lists: dict):
-        super().__init__()
+    def __init__(self, origin_lists: dict, token: str = None):
+        super().__init__(token=token)
         self.status: None | int = None
-        self.username = None
+        self.username = token
         PV.v_empty(origin_lists, "origin lists")
         self.origin_lists = origin_lists
         self.subscirbe_lists = {}
@@ -24,11 +26,15 @@ class OGMSTask(Service):
             start_time = time.time()
             stateManager = StateManager()
             stateManager.checkInputStatus(PV.v_status(self._refresh()))
-            while stateManager.getState != 0b100:
+            while stateManager.hasStatus(0b100) is False:
                 stateManager.checkInputStatus(PV.v_status(self._refresh()))
                 if time.time() - start_time > timeout:
                     raise calTimeoutError()
                 time.sleep(3)
+            return {
+                "outputs": self.outputs,
+            }
+
         except NotValueError or modelStatusError as e:
             print(e)
             exit(1)
@@ -175,12 +181,13 @@ class OGMSTask(Service):
             raise MDLVaildParamsError("\n".join(errors))
         else:
             self.subscirbe_lists = merge_data
+            return 1
 
     def _refresh(self):
         PV.v_empty(self.modelSign, "Model sign")
         res = HttpClient.hander_response(
             HttpClient.post_sync(
-                url=self.managerUrl + C.REFRESH_RECORD, data=self.modelSign
+                url=self.managerUrl + C.REFRESH_RECORD, json=self.modelSign
             )
         ).get("json", {})
         if res.get("code") == 1:
@@ -221,13 +228,64 @@ class OGMSAccess(Service):
 
     def createTask(self, params: dict):
         PV.v_empty(params, "Params")
-        task = OGMSTask(self.originLists)
-        if task.configInputData(params, self.token) and self._subscribeTask(task):
+        task = OGMSTask(self.originLists, self.token)
+        if task.configInputData(params) and self._subscribeTask(task):
             result = task.wait4Status()
-        pass
+            self.outputs = result["outputs"]
+            print(self.outputs)
+            return self.outputs
 
     def downloadAllData(self):
-        pass
+
+        s_id = secrets.token_hex(8)
+        downloadFilesNum = 0
+        downlaodedFilesNum = 0
+        if not self.outputs:
+            print("没有可下载的数据")
+            return False
+
+        for output in self.outputs:
+            statename = output["statename"]
+            event = output["event"]
+            url = output["url"]
+            suffix = output["suffix"]
+            # 构建文件名
+            base_filename = f"{statename}-{event}"
+            filename = f"{base_filename}.{suffix}"
+            counter = 1
+
+            file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
+
+            dir_path = os.path.dirname(file_path)
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+            # 检查文件是否存在
+            while os.path.exists(file_path):
+                filename = f"{base_filename}_{counter}.{suffix}"
+                file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
+                counter += 1
+            downloadFilesNum = downloadFilesNum + 1
+            # 下载文件并保存
+            content = HttpClient.hander_response(HttpClient.get_file_sync(url=url)).get(
+                "content", {}
+            )
+            if content:
+                with open(file_path, "wb") as f:
+                    f.write(content)
+                print(f"Downloaded {filename}")
+                downlaodedFilesNum = downlaodedFilesNum + 1
+            else:
+                print(f"Failed to download {url}")
+        if downlaodedFilesNum == 0:
+            print("Failed to download files")
+            return False
+        if downloadFilesNum == downlaodedFilesNum:
+            print("All files downloaded successfully")
+            return True
+        else:
+            print("Failed to download some files")
+            return True
 
     ########################private################################
     def _checkModel(self, modelName: str):
@@ -242,9 +300,9 @@ class OGMSAccess(Service):
             .get("data", {})
         )
         if res.get("md5"):
-            self._checkModelService(pid=res.get("md5"))
-            self.originLists = MDL().resolvingMDL(res.get("mdl"))
-            return res.get("pid")
+            self.originLists = MDL().resolvingMDL(res)
+            if self.originLists:
+                return res.get("md5")
         return 0
 
     def _checkModelService(self, pid: str):
@@ -261,18 +319,15 @@ class OGMSAccess(Service):
         return 0
 
     def _subscribeTask(self, task):
-        res = (
-            HttpClient.hander_response(
-                HttpClient.post_sync(
-                    self.managerUrl + C.INVOKE_MODEL, task.subscirbe_lists
-                )
+        res = HttpClient.hander_response(
+            HttpClient.post_sync(
+                self.managerUrl + C.INVOKE_MODEL, json=task.subscirbe_lists
             )
-            .get("json", {})
-            .get("data", {})
-        )
+        ).get("json", {})
         if res.get("code") == 1:
             task.ip = res.get("data").get("ip")
             task.port = res.get("data").get("port")
             task.tid = res.get("data").get("tid")
+            task.modelSign = {"port": task.port, "ip": task.ip, "tid": task.tid}
             return 1
         raise NotValueError("Model invoke error!")

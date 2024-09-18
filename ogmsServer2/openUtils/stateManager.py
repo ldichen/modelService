@@ -2,6 +2,13 @@
 Author: DiChen
 Date: 2024-09-06 17:21:20
 LastEditors: DiChen
+LastEditTime: 2024-09-13 21:54:57
+"""
+
+"""
+Author: DiChen
+Date: 2024-09-06 17:21:20
+LastEditors: DiChen
 LastEditTime: 2024-09-08 16:23:59
 """
 
@@ -54,9 +61,9 @@ class StateManager:
 
     def checkInputStatus(self, status):
         """check input status"""
-        if status == 1 and self.hasStatus(STATE_INIT):
-            self.trans2Status(STATE_RUNNING)
+        if status == 1 and self.state == STATE_INIT:
+            self.addState(STATE_RUNNING)
             print("model service calculating!")
         elif status == 2:
-            self.trans2Status(STATE_COMPLETED)
+            self.addState(STATE_COMPLETED)
             print("model calculation was completed!")

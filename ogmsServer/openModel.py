@@ -24,7 +24,7 @@ import secrets
 
 class OGMSTask(Service):
     def __init__(self):
-        super().__init__("172.21.213.105", 8061)
+        super().__init__("172.21.212.99", 8061)
         self.origin_lists = {}
         self.subscirbe_lists = {}
         self.tid: str = None
@@ -222,6 +222,7 @@ class OGMSTask(Service):
 
     def validData(self, merge_data: dict) -> ResultUtils:
         def validate_event(event):
+            print(event)
             errors = []
             event_name = f"{event.get('statename')}-{event.get('event')}"
 
@@ -321,11 +322,13 @@ class OGMSTask(Service):
                 for output in res["data"]["outputs"]:
                     if output.get("url") is not None and output.get("url") != "":
                         url = output.get("url")
-                        updated_url = url.replace(
-                            "http://112.4.132.6:8083",
-                            "http://geomodeling.njnu.edu.cn/dataTransferServer",
-                        )
-                        output["url"] = updated_url
+                        print(url)
+                        # url = output.get("url")
+                        # updated_url = url.replace(
+                        #     "http://112.4.132.6:8083",
+                        #     "http://geomodeling.njnu.edu.cn/dataTransferServer",
+                        # )
+                        # output["url"] = updated_url
                         hasValue = True
                 if hasValue is False:
                     return -1
@@ -568,7 +571,7 @@ class OGMSTaskAccess(Service):
                 counter += 1
             downloadFilesNum = downloadFilesNum + 1
             # 下载文件并保存
-            content = HttpHelper.Request_get_url_sync(url)
+            content, cDisposition = HttpHelper.Request_get_url_sync(url)
             if content:
                 with open("./data/" + filename, "wb") as f:
                     f.write(content)
@@ -609,6 +612,7 @@ class OGMSDownload:
         self.outputs = data
         downloadFilesNum = 0
         downlaodedFilesNum = 0
+        s_id = secrets.token_hex(8)
         if not self.outputs:
             print("没有可下载的数据")
         for output in self.outputs:
@@ -622,7 +626,6 @@ class OGMSDownload:
             filename = f"{base_filename}.{suffix}"
             counter = 1
 
-            s_id = secrets.token_hex(8)
             file_path = "./data/" + self.modelName + "_" + s_id + "/" + filename
 
             dir_path = os.path.dirname(file_path)
