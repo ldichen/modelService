@@ -49,7 +49,7 @@ class OGMSTask(Service):
             exit(1)
 
     ########################private################################
-    def _uploadData(self, pathList: str):
+    def _uploadData(self, pathList: dict):
         inputs = {}
         for category, files in pathList.items():
             inputs[category] = {}
@@ -63,10 +63,8 @@ class OGMSTask(Service):
 
     def _getUploadData(self, path: str):
         res = (
-            HttpClient.hander_response(
-                HttpClient.post_sync(
-                    self.dataUrl + C.UPLOAD_DATA, files={"datafile": open(path, "rb")}
-                )
+            HttpClient.post_sync(
+                self.dataUrl + C.UPLOAD_DATA, files={"datafile": open(path, "rb")}
             )
             .get("json", {})
             .get("data", {})
@@ -185,10 +183,8 @@ class OGMSTask(Service):
 
     def _refresh(self):
         PV.v_empty(self.modelSign, "Model sign")
-        res = HttpClient.hander_response(
-            HttpClient.post_sync(
-                url=self.managerUrl + C.REFRESH_RECORD, json=self.modelSign
-            )
+        res = HttpClient.post_sync(
+            url=self.managerUrl + C.REFRESH_RECORD, json=self.modelSign
         ).get("json", {})
         if res.get("code") == 1:
             if res.get("data").get("status") != 2:
@@ -215,12 +211,11 @@ class OGMSTask(Service):
 
 
 class OGMSAccess(Service):
-    def __init__(self, modelName: str, token: str = None):
+    def __init__(self, pid: str, token: str = None):
         super().__init__(token=token)
-        PV.v_empty(modelName, "Model name")
-        self.modelName = modelName
+        PV.v_empty(pid, "Model pid")
         self.outputs = []
-        if self._checkModelService(pid=self._checkModel(modelName=modelName)):
+        if self._checkModelService(pid=pid):
             print("Model service is ready!")
         else:
             print("Model service is not ready, please try again later!")
@@ -267,9 +262,7 @@ class OGMSAccess(Service):
                 counter += 1
             downloadFilesNum = downloadFilesNum + 1
             # 下载文件并保存
-            content = HttpClient.hander_response(HttpClient.get_file_sync(url=url)).get(
-                "content", {}
-            )
+            content = HttpClient.get_file_sync(url=url).get("content", {})
             if content:
                 with open(file_path, "wb") as f:
                     f.write(content)
@@ -288,13 +281,12 @@ class OGMSAccess(Service):
             return True
 
     ########################private################################
+    # 暂时废弃
     def _checkModel(self, modelName: str):
         PV.v_empty(modelName, "Model name")
         res = (
-            HttpClient.hander_response(
-                HttpClient.get_sync(
-                    self.portalUrl + C.CHECK_MODEL + urllib.parse.quote(modelName)
-                )
+            HttpClient.get_sync(
+                self.portalUrl + C.CHECK_MODEL + urllib.parse.quote(modelName)
             )
             .get("json", {})
             .get("data", {})
@@ -305,12 +297,10 @@ class OGMSAccess(Service):
                 return res.get("md5")
         return 0
 
-    def _checkModelService(self, pid: str):
-        PV.v_empty(pid, "Model pid")
+    def _checkModelService(self):
+        PV.v_empty(self.pid, "Model pid")
         if (
-            HttpClient.hander_response(
-                HttpClient.get_sync(self.managerUrl + C.CHECK_MODEL_SERVICE + pid)
-            )
+            HttpClient.get_sync(self.managerUrl + C.CHECK_MODEL_SERVICE + pid)
             .get("json", {})
             .get("data", {})
             == True
@@ -319,10 +309,8 @@ class OGMSAccess(Service):
         return 0
 
     def _subscribeTask(self, task):
-        res = HttpClient.hander_response(
-            HttpClient.post_sync(
-                self.managerUrl + C.INVOKE_MODEL, json=task.subscirbe_lists
-            )
+        res = HttpClient.post_sync(
+            self.managerUrl + C.INVOKE_MODEL, json=task.subscirbe_lists
         ).get("json", {})
         if res.get("code") == 1:
             task.ip = res.get("data").get("ip")

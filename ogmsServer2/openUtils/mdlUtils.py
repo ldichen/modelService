@@ -13,9 +13,9 @@ class MDL:
         self.port = 8061
         self.origin_lists = {}
 
-    def resolvingMDL(self, mdlData: str):
+    def resolvingMDL(self, mdlData: dict):
         if mdlData:
-            self.origin_lists = self.parse_model_data(mdlData)
+            self.origin_lists = self._parse_model_data(mdlData)
             return self.origin_lists
         else:
             # TODO: 处理无mdl的情况
@@ -23,7 +23,7 @@ class MDL:
 
     #######################private#######################
 
-    def parse_model_data(self, mdl_data: dict):
+    def _parse_model_data(self, mdl_data: dict):
         def extract_children(udx_node):
             return [
                 {

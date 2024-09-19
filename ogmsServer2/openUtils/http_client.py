@@ -32,17 +32,20 @@ class HttpClient:
                     headers=headers,
                 )
                 response.raise_for_status()  # 检查 HTTP 错误
-                if downloadFile:
+                if response["status_code"] == 200:
+                    if downloadFile:
+                        return {
+                            "status_code": response.status_code,
+                            "headers": dict(response.headers),
+                            "content": response.content,
+                        }
                     return {
                         "status_code": response.status_code,
                         "headers": dict(response.headers),
-                        "content": response.content,
+                        "json": response.json(),
                     }
-                return {
-                    "status_code": response.status_code,
-                    "headers": dict(response.headers),
-                    "json": response.json(),
-                }
+                else:
+                    raise Exception(response["error"])
         except httpx.TimeoutException:
             # 处理超时错误
             return {"status_code": None, "headers": None, "error": "Request timed out"}
@@ -64,13 +67,6 @@ class HttpClient:
                 "headers": None,
                 "error": f"Unexpected error: {e}",
             }
-
-    @staticmethod
-    def hander_response(response):
-        if response["status_code"] == 200:
-            return response
-        else:
-            raise Exception(response["error"])
 
     @staticmethod
     def get_sync(
@@ -152,6 +148,7 @@ class HttpClient:
         files: Optional[Files] = None,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Headers] = None,
+        downloadFile: bool = False,
     ) -> Dict[str, Any]:
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(timeout)) as client:
@@ -165,11 +162,20 @@ class HttpClient:
                     headers=headers,
                 )
                 response.raise_for_status()  # 检查 HTTP 错误
-                return {
-                    "status_code": response.status_code,
-                    "headers": dict(response.headers),
-                    "json": response.json(),
-                }
+                if response["status_code"] == 200:
+                    if downloadFile:
+                        return {
+                            "status_code": response.status_code,
+                            "headers": dict(response.headers),
+                            "content": response.content,
+                        }
+                    return {
+                        "status_code": response.status_code,
+                        "headers": dict(response.headers),
+                        "json": response.json(),
+                    }
+                else:
+                    raise Exception(response["error"])
         except httpx.TimeoutException:
             # 处理超时错误
             return {"status_code": None, "headers": None, "error": "Request timed out"}

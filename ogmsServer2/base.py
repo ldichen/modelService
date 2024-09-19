@@ -2,7 +2,7 @@
 Author: DiChen
 Date: 2024-09-06 15:22:20
 LastEditors: DiChen
-LastEditTime: 2024-09-11 18:37:16
+LastEditTime: 2024-09-19 15:21:40
 """
 
 import sys
@@ -23,10 +23,8 @@ class Service:
 
     #########################private#########################################
     def _validateToken(self):
-        res = HttpClient.hander_response(
-            HttpClient.get_sync(
-                self.portalUrl + C.CHECK_SDK, params={"token": self.token}
-            )
+        res = HttpClient.get_sync(
+            self.portalUrl + C.CHECK_SDK, params={"token": self.token}
         ).get("json", {})
         if res.get("data") != 1:
             print("token无效，请联系管理员！")
