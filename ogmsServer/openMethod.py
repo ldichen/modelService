@@ -171,7 +171,7 @@ class OGMSTaskAccess(Service):
         if not self.outputs:
             print("没有可下载的数据")
             return False
-
+        s_id = secrets.token_hex(8)
         for event in self.outputs:
             for index, url in enumerate(self.outputs[event]):
                 downloadFilesNum = downloadFilesNum + 1
@@ -182,7 +182,7 @@ class OGMSTaskAccess(Service):
                 couter = 1
 
                 if content:
-                    s_id = secrets.token_hex(8)
+
                     file_path = (
                         "./data/" + self.methodName + "_" + s_id + "/" + filename
                     )
