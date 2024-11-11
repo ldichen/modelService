@@ -16,6 +16,7 @@ import configparser
 import urllib.parse
 import secrets
 
+
 # TODO:
 # 文件识别
 # 路径校验
@@ -47,13 +48,13 @@ class OGMSTask(Service):
         self.dataServer = config.get("DEFAULT", "dataServer").strip()
         self.dataPort = config.get("DEFAULT", "dataPort").strip()
         if not (
-            self.username
-            or self.portalServer
-            or self.portalPort
-            or self.managerServer
-            or self.managerPort
-            or self.dataServer
-            or self.dataPort
+                self.username
+                or self.portalServer
+                or self.portalPort
+                or self.managerServer
+                or self.managerPort
+                or self.dataServer
+                or self.dataPort
         ):
             print("计算容器配置出错，请联系管理员！")
             sys.exit(1)
@@ -126,7 +127,7 @@ class OGMSTask(Service):
                 }
 
             if dataset_item["type"] == "internal" and dataset_item.get(
-                "UdxDeclaration"
+                    "UdxDeclaration"
             ):
                 udx_node = dataset_item["UdxDeclaration"][0].get("UdxNode")
                 if udx_node:
@@ -258,9 +259,9 @@ class OGMSTask(Service):
                 else:
                     if event.get("optional") == "True":
                         if not (
-                            event.get("url")
-                            or event.get("suffix")
-                            or "children" in event
+                                event.get("url")
+                                or event.get("suffix")
+                                or "children" in event
                         ):
                             # 如果选填项没有值，则跳过
                             continue
@@ -384,8 +385,8 @@ class OGMSTask(Service):
         )
         if res["code"] == 1:
             url = (
-                "http://geomodeling.njnu.edu.cn/dataTransferServer/data/"
-                + res["data"]["id"]
+                    "http://geomodeling.njnu.edu.cn/dataTransferServer/data/"
+                    + res["data"]["id"]
             )
             return url
         else:
@@ -465,10 +466,10 @@ class OGMSTaskAccess(Service):
         self.managerServer = config.get("DEFAULT", "managerServer").strip()
         self.managerPort = config.get("DEFAULT", "managerPort").strip()
         if not (
-            self.portalServer
-            or self.portalPort
-            or self.managerServer
-            or self.managerPort
+                self.portalServer
+                or self.portalPort
+                or self.managerServer
+                or self.managerPort
         ):
             print("读取配置信息出错，请联系管理员！")
             sys.exit(1)
@@ -491,9 +492,9 @@ class OGMSTaskAccess(Service):
             sys.exit(1)
         else:
             if (
-                res["code"] == 0
-                and res["data"] != None
-                and res["data"].get("md5") != None
+                    res["code"] == 0
+                    and res["data"] != None
+                    and res["data"].get("md5") != None
             ):
                 print("模型资源已载入，准备创建服务！")
                 # get first model pid
@@ -540,7 +541,8 @@ class OGMSTaskAccess(Service):
             print("模型运行失败，请重试！")
             sys.exit(1)
 
-    def downloadAllData(self) -> bool:
+    # Warnning: 暂时废弃
+    def downloadAllData_discarded(self) -> bool:
         s_id = secrets.token_hex(8)
         downloadFilesNum = 0
         downlaodedFilesNum = 0
@@ -634,6 +636,57 @@ class OGMSTaskAccess(Service):
         # else:
         #     print("Failed to download some files")
         #     return True
+
+    def downloadAllData(self, download_path: str = None) -> bool:
+        s_id = secrets.token_hex(8)
+        downloadFilesNum = 0
+        downlaodedFilesNum = 0
+        if not self.outputs:
+            print("没有可下载的数据")
+            return False
+
+        for output in self.outputs:
+            statename = output["statename"]
+            event = output["event"]
+            url = output["url"]
+            suffix = output["suffix"]
+            # 构建文件名
+            base_filename = f"{statename}-{event}"
+            filename = f"{base_filename}.{suffix}"
+            counter = 1
+            if download_path:
+                base_path = "./data/" + download_path + "/"
+            else:
+                base_path = "./data/" + self.modelName + "_" + s_id + "/"
+            file_path = base_path + filename
+            dir_path = os.path.dirname(file_path)
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+            # 检查文件是否存在
+            while os.path.exists(file_path):
+                filename = f"{base_filename}_{counter}.{suffix}"
+                file_path = base_path + filename
+                counter += 1
+            downloadFilesNum = downloadFilesNum + 1
+            # 下载文件并保存
+            content, cDisposition = HttpHelper.Request_get_url_sync(url)
+            if content:
+                with open(file_path, "wb") as f:
+                    f.write(content)
+                print(f"Downloaded {filename}")
+                downlaodedFilesNum = downlaodedFilesNum + 1
+            else:
+                print(f"Failed to download {url}")
+        if downlaodedFilesNum == 0:
+            print("Failed to download files")
+            return False
+        if downloadFilesNum == downlaodedFilesNum:
+            print("All files downloaded successfully")
+            return True
+        else:
+            print("Failed to download some files")
+            return True
 
     def createTask(self, params: dict) -> ResultUtils:
         # create task
