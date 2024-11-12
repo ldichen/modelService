@@ -35,7 +35,9 @@ class OGMSTask(Service):
         # 创建一个配置解析器对象
         config = configparser.ConfigParser()
         # 读取配置文件
-        config_path = "../config.ini"
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_directory,"../config.ini")
+        # config_path = "../config.ini"
         if not os.path.exists(config_path):
             print("计算容器配置出错，请联系管理员！")
             sys.exit(1)
@@ -456,7 +458,8 @@ class OGMSTaskAccess(Service):
         # 创建一个配置解析器对象
         config = configparser.ConfigParser()
         # 读取配置文件
-        config_path = "../config.ini"
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_directory,"../config.ini")
         if not os.path.exists(config_path):
             print("读取配置信息出错，请联系管理员！")
             sys.exit(1)

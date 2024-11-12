@@ -21,7 +21,7 @@ lists = {
 
 taskServer = openModel.OGMSTaskAccess(modelName="地震群发滑坡概率评估预警模型")
 result = taskServer.createTask(params=lists)
-taskServer.downloadAllData()
+taskServer.downloadAllData("test")
 
 
 # download result from url
